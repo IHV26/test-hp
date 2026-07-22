@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Home Glow</title>
+<style>
+  :root{
+    --bg: #15120e;
+    --bg-soft: #1d1812;
+    --card-off: #262019;
+    --ink: #f2e9dc;
+    --ink-dim: #a89c8a;
+    --ink-faint: #6f6455;
+    --accent: #ffb86b;
+    --danger: #e2725b;
+    --line: rgba(242,233,220,0.08);
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    overscroll-behavior: none;
+  }
+  body{ -webkit-user-select:none; user-select:none; }
+  input, textarea{ -webkit-user-select:text; user-select:text; }
+
+  #app{ min-height:100%; padding: 28px 20px 40px; }
+
+  .topbar{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 22px;
+  }
+  .topbar h1{
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: 0.3px;
+    margin: 0;
+    color: var(--ink);
+  }
+  .topbar .clock{
+    font-size: 13px;
+    color: var(--ink-faint);
+    letter-spacing: 0.5px;
+  }
+  .icon-btn{
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    font-size: 18px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .icon-btn:active{ background:#28221a; }
+  .icon-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .status-banner{
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-dim);
+    margin-bottom: 18px;
+  }
+  .status-banner.error{ color: var(--danger); border-color: rgba(226,114,91,0.35); }
+  .status-banner a, .status-banner button.link{
+    color: var(--accent); text-decoration: underline; background:none; border:none; font: inherit; padding:0; cursor:pointer;
+  }
+
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .tile{
+    position: relative;
+    border-radius: 20px;
+    background: var(--card-off);
+    border: 1px solid var(--line);
+    padding: 18px 18px 16px;
+    overflow: hidden;
+    transition: background 320ms ease, box-shadow 320ms ease;
+  }
+  .tile .glow{
+    position:absolute; inset:0;
+    opacity: 0;
+    transition: opacity 320ms ease, background 320ms ease;
+    pointer-events:none;
+  }
+  .tile.on .glow{ opacity: 1; }
+
+  .tile-head{ position:relative; display:flex; justify-content:space-between; align-items:flex-start; }
+  .tile-name{ font-family: var(--serif); font-size: 21px; line-height:1.2; margin:0 0 4px; }
+  .tile-sub{ font-size: 12.5px; color: var(--ink-dim); letter-spacing:0.2px; }
+
+  .switch{
+    position: relative;
+    width: 46px; height: 28px;
+    border-radius: 16px;
+    background: rgba(242,233,220,0.14);
+    border: none;
+    flex: none;
+    cursor: pointer;
+  }
+  .switch::after{
+    content:''; position:absolute; top:3px; left:3px;
+    width:22px; height:22px; border-radius:50%;
+    background: var(--ink);
+    transition: transform 200ms ease, background 200ms ease;
+  }
+  .switch.on{ background: rgba(255,184,107,0.35); }
+  .switch.on::after{ transform: translateX(18px); background: var(--accent); }
+  .switch:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .slider-row{ position:relative; margin-top: 16px; }
+  input[type=range]{
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 30px;
+    background: transparent;
+    margin: 0;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height: 8px; border-radius: 4px;
+    background: rgba(242,233,220,0.14);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width: 24px; height: 24px; border-radius:50%;
+    background: var(--ink);
+    margin-top: -8px;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  input[type=range]:disabled{ opacity: 0.35; }
+  input[type=range]:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .expand-btn{
+    position:relative; width:100%; text-align:left;
+    background:none; border:none; color: var(--ink-faint);
+    font-size: 12.5px; letter-spacing: 0.3px;
+    padding: 14px 0 0; margin:0;
+    cursor:pointer; font-family: var(--sans);
+  }
+  .expand-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .lights-list{ position:relative; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .light-row{ display:flex; align-items:center; gap: 10px; padding: 8px 0; }
+  .light-row .dot{ width:10px; height:10px; border-radius:50%; flex:none; background:#555; }
+  .light-row .lname{ flex: 1 1 auto; font-size: 14px; color: var(--ink); }
+  .light-row .lname.unreachable{ color: var(--ink-faint); }
+  .light-row input[type=range]{ flex: 1 1 120px; max-width: 140px; }
+  .mini-switch{
+    width: 36px; height: 22px; border-radius: 12px; background: rgba(242,233,220,0.14);
+    position:relative; border:none; flex:none; cursor:pointer;
+  }
+  .mini-switch::after{
+    content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background: var(--ink); transition: transform 180ms ease;
+  }
+  .mini-switch.on::after{ transform: translateX(14px); background: var(--accent); }
+
+  .all-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--bg-soft); border:1px solid var(--line); border-radius: 16px;
+    padding: 14px 18px; margin-bottom: 18px;
+  }
+  .all-row .tile-name{ font-size:18px; margin:0; }
+
+  /* --- Setup / pairing screens --- */
+  .center-screen{
+    max-width: 480px; margin: 8vh auto 0; text-align:left;
+  }
+  .center-screen h1{ font-family: var(--serif); font-weight:400; font-size:28px; margin: 0 0 6px; }
+  .center-screen p{ color: var(--ink-dim); font-size: 15px; line-height:1.6; margin: 0 0 22px; }
+  .step{
+    background: var(--bg-soft); border:1px solid var(--line); border-radius:16px;
+    padding: 18px 18px; margin-bottom: 14px;
+  }
+  .step h2{ font-family: var(--serif); font-weight:400; font-size:17px; margin:0 0 8px; }
+  .step p{ font-size: 13.5px; margin: 0 0 12px; }
+  .field{
+    width:100%; background: var(--bg); border:1px solid var(--line); border-radius: 10px;
+    color: var(--ink); font-size: 16px; padding: 12px 14px; font-family: var(--sans);
+  }
+  .field:focus-visible{ outline: 2px solid var(--accent); }
+  .btn{
+    display:inline-block; background: var(--accent); color: #201406; border:none;
+    font-size: 15px; font-weight: 600; padding: 12px 18px; border-radius: 10px;
+    cursor:pointer; text-decoration:none; font-family: var(--sans);
+  }
+  .btn:active{ background:#e6a55e; }
+  .btn:focus-visible{ outline: 2px solid var(--ink); outline-offset:2px; }
+  .btn.secondary{
+    background: transparent; border: 1px solid var(--line); color: var(--ink);
+  }
+  .btn.danger{ background: transparent; border: 1px solid rgba(226,114,91,0.5); color: var(--danger); }
+  .btn[disabled]{ opacity:0.5; cursor:default; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .hint{ font-size: 12.5px; color: var(--ink-faint); margin-top:8px; }
+
+  .empty{
+    text-align:center; padding: 60px 20px; color: var(--ink-dim);
+  }
+  .empty h2{ font-family: var(--serif); font-weight:400; color:var(--ink); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var CONFIG_KEY = 'hueWallPanelConfig';
+  var state = {
+    ip: null,
+    username: null,
+    lights: {},
+    groups: {},
+    expanded: {},
+    loading: false,
+    lastError: null,
+    view: 'loading' // loading | setup-ip | setup-trust | setup-link | dashboard
+  };
+  var pollTimer = null;
+  var sliderTimers = {};
+
+  // ---------- persistence ----------
+  function loadConfig(){
+    try{
+      var raw = window.localStorage.getItem(CONFIG_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+  function saveConfig(cfg){
+    try{ window.localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }catch(e){}
+  }
+  function clearConfig(){
+    try{ window.localStorage.removeItem(CONFIG_KEY); }catch(e){}
+  }
+
+  // ---------- bridge API ----------
+  function apiBase(){ return 'https://' + state.ip + '/api'; }
+
+  function withTimeout(promise, ms){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var timer = setTimeout(function(){
+        if(done) return;
+        done = true;
+        var e = new Error('timeout');
+        e.isTimeout = true;
+        reject(e);
+      }, ms);
+      promise.then(function(v){
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(v);
+      }, function(err){
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  }
+
+  function discoverBridge(){
+    return withTimeout(fetch('https://discovery.meethue.com/'), 10000)
+      .then(function(r){ return r.json(); })
+      .then(function(list){
+        if(list && list.length && list[0].internalipaddress){
+          return list[0].internalipaddress;
+        }
+        throw new Error('none-found');
+      });
+  }
+
+  function createUser(){
+    return withTimeout(fetch(apiBase(), {
+      method: 'POST',
+      body: JSON.stringify({ devicetype: 'hue_wall_panel#ipad' })
+    }), 12000)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var entry = data && data[0];
+      if(entry && entry.success && entry.success.username){
+        return entry.success.username;
+      }
+      if(entry && entry.error){
+        var err = new Error(entry.error.description || 'error');
+        err.type = entry.error.type;
+        throw err;
+      }
+      throw new Error('unexpected-response');
+    });
+  }
+
+  function fetchAll(){
+    var url = apiBase() + '/' + state.username;
+    return withTimeout(fetch(url), 12000).then(function(r){ return r.json(); });
+  }
+
+  function setGroupState(id, body){
+    return fetch(apiBase() + '/' + state.username + '/groups/' + id + '/action', {
+      method: 'PUT', body: JSON.stringify(body)
+    });
+  }
+  function setLightState(id, body){
+    return fetch(apiBase() + '/' + state.username + '/lights/' + id + '/state', {
+      method: 'PUT', body: JSON.stringify(body)
+    });
+  }
+
+  // ---------- color science ----------
+  function clamp01(v){ return Math.max(0, Math.min(1, v)); }
+  function clamp255(v){ return Math.max(0, Math.min(255, Math.round(v))); }
+
+  function xyBriToRgb(x, y, bri){
+    var z = 1.0 - x - y;
+    var Y = (bri === undefined ? 254 : bri) / 254;
+    var X = (y === 0) ? 0 : (Y / y) * x;
+    var Z = (y === 0) ? 0 : (Y / y) * z;
+    var r =  X * 1.656492 - Y * 0.354851 - Z * 0.255038;
+    var g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
+    var b =  X * 0.051713 - Y * 0.121364 + Z * 1.011530;
+    function gamma(c){
+      return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1/2.4) - 0.055;
+    }
+    r = clamp01(gamma(r)); g = clamp01(gamma(g)); b = clamp01(gamma(b));
+    var maxc = Math.max(r,g,b) || 1;
+    // renormalize so the strongest channel hits full intensity (keeps colors vivid on a dark tile)
+    return [clamp255(r/maxc*255), clamp255(g/maxc*255), clamp255(b/maxc*255)];
+  }
+
+  function miredToRgb(mired){
+    var kelvin = 1000000 / Math.max(mired, 1);
+    var temp = kelvin / 100;
+    var red, green, blue;
+    if(temp <= 66){ red = 255; }
+    else { red = 329.698727446 * Math.pow(temp - 60, -0.1332047592); }
+    if(temp <= 66){ green = 99.4708025861 * Math.log(temp) - 161.1195681661; }
+    else { green = 288.1221695283 * Math.pow(temp - 60, -0.0755148492); }
+    if(temp >= 66){ blue = 255; }
+    else if(temp <= 19){ blue = 0; }
+    else { blue = 138.5177312231 * Math.log(temp - 10) - 305.0447927307; }
+    return [clamp255(red), clamp255(green), clamp255(blue)];
+  }
+
+  function hsBriToRgb(hue, sat, bri){
+    var h = (hue / 65535) * 360;
+    var s = sat / 254;
+    var v = bri / 254;
+    var c = v * s;
+    var x = c * (1 - Math.abs(((h/60) % 2) - 1));
+    var m = v - c;
+    var r,g,b;
+    if(h < 60){ r=c; g=x; b=0; }
+    else if(h < 120){ r=x; g=c; b=0; }
+    else if(h < 180){ r=0; g=c; b=x; }
+    else if(h < 240){ r=0; g=x; b=c; }
+    else if(h < 300){ r=x; g=0; b=c; }
+    else { r=c; g=0; b=x; }
+    return [clamp255((r+m)*255), clamp255((g+m)*255), clamp255((b+m)*255)];
+  }
+
+  function colorForLightState(s){
+    if(!s || !s.on){ return null; }
+    if(s.colormode === 'xy' && s.xy){ return xyBriToRgb(s.xy[0], s.xy[1], s.bri); }
+    if(s.colormode === 'ct' && s.ct){ return miredToRgb(s.ct); }
+    if(s.colormode === 'hs'){ return hsBriToRgb(s.hue || 0, s.sat || 0, s.bri === undefined ? 254 : s.bri); }
+    // dimmable-only white bulb: warm white, scaled by brightness
+    var b = (s.bri === undefined ? 200 : s.bri) / 254;
+    return [255, Math.round(200 + 30*b), Math.round(140 + 40*b)];
+  }
+
+  function rgbCss(rgb, alpha){ return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha + ')'; }
+
+  // ---------- data helpers ----------
+  function roomsList(){
+    var out = [];
+    Object.keys(state.groups).forEach(function(id){
+      var g = state.groups[id];
+      if(g.type === 'Room' || g.type === 'Zone'){ out.push({ id: id, g: g }); }
+    });
+    out.sort(function(a,b){ return a.g.name.localeCompare(b.g.name); });
+    return out;
+  }
+
+  function lightsInGroup(g){
+    var ids = g.lights || [];
+    return ids.map(function(id){ return { id: id, l: state.lights[id] }; }).filter(function(x){ return !!x.l; });
+  }
+
+  function avgBri(items){
+    var total = 0, count = 0;
+    items.forEach(function(it){
+      total += (it.l.state.bri === undefined ? 254 : it.l.state.bri);
+      count++;
+    });
+    return count ? Math.round(total/count) : 200;
+  }
+
+  function representativeColor(items){
+    for(var i=0;i<items.length;i++){
+      var c = colorForLightState(items[i].l.state);
+      if(c) return c;
+    }
+    return null;
+  }
+
+  // ---------- rendering ----------
+  function el(html){
+    var d = document.createElement('div');
+    d.innerHTML = html.trim();
+    return d.firstChild;
+  }
+
+  function render(){
+    var app = document.getElementById('app');
+    app.innerHTML = '';
+    if(state.view === 'loading'){
+      app.appendChild(el('<div class="empty"><h2>Loading&hellip;</h2></div>'));
+      return;
+    }
+    if(state.view === 'setup-ip' || state.view === 'setup-trust' || state.view === 'setup-link'){
+      app.appendChild(renderSetup());
+      return;
+    }
+    app.appendChild(renderDashboard());
+  }
+
+  function renderSetup(){
+    var wrap = el('<div class="center-screen"></div>');
+    wrap.appendChild(el('<h1>Set up Home Glow</h1>'));
+    wrap.appendChild(el('<p>This page talks directly to your Hue Bridge over your home Wi-Fi &mdash; no account, no cloud, nothing to install.</p>'));
+
+    // Step 1: IP
+    var step1 = el('<div class="step"><h2>1. Find your bridge</h2><p>We can look it up automatically, or you can type its address (Settings &rarr; Hue Bridges in the Hue app).</p></div>');
+    var ipField = el('<input class="field" type="text" inputmode="decimal" placeholder="e.g. 192.168.1.42" />');
+    if(state.ip) ipField.value = state.ip;
+    var findRow = el('<div class="row" style="margin-top:12px;"></div>');
+    var findBtn = el('<button class="btn secondary">Find automatically</button>');
+    var findStatus = el('<span class="hint"></span>');
+    findBtn.addEventListener('click', function(){
+      findStatus.textContent = 'Searching...';
+      discoverBridge().then(function(ip){
+        ipField.value = ip;
+        findStatus.textContent = 'Found ' + ip;
+      }).catch(function(){
+        findStatus.textContent = 'Could not auto-find a bridge. Enter the address manually.';
+      });
+    });
+    findRow.appendChild(findBtn);
+    findRow.appendChild(findStatus);
+    step1.appendChild(ipField);
+    step1.appendChild(findRow);
+    wrap.appendChild(step1);
+
+    // Step 2: trust certificate
+    var step2 = el('<div class="step"><h2>2. Trust the bridge, once</h2><p>Your bridge uses a self-signed security certificate. Safari will warn you the first time &mdash; that\'s expected for a device on your own network. Tap the link below, then choose <em>Show Details &rarr; visit this website</em>, then come back here.</p></div>');
+    var trustLink = el('<a class="btn secondary" target="_blank" rel="noopener">Open bridge address</a>');
+    trustLink.addEventListener('click', function(ev){
+      if(!ipField.value){ ev.preventDefault(); alert('Enter the bridge address in step 1 first.'); return; }
+      trustLink.setAttribute('href', 'https://' + ipField.value.trim() + '/');
+    });
+    step2.appendChild(trustLink);
+    wrap.appendChild(step2);
+
+    // Step 3: link button
+    var step3 = el('<div class="step"><h2>3. Press the link button</h2><p>Press the round button on top of your Hue Bridge, then tap Connect within about 30 seconds.</p></div>');
+    var connectBtn = el('<button class="btn">Connect</button>');
+    var connectStatus = el('<div class="hint" style="margin-top:10px;"></div>');
+    connectBtn.addEventListener('click', function(){
+      var ip = ipField.value.trim();
+      if(!ip){ connectStatus.textContent = 'Enter the bridge address above first.'; return; }
+      state.ip = ip;
+      connectBtn.setAttribute('disabled','disabled');
+      connectStatus.textContent = 'Connecting...';
+      createUser().then(function(username){
+        state.username = username;
+        saveConfig({ ip: ip, username: username });
+        state.view = 'dashboard';
+        loadAndRender();
+      }).catch(function(err){
+        connectBtn.removeAttribute('disabled');
+        if(err && err.type === 101){
+          connectStatus.textContent = 'Press the link button on the bridge, then tap Connect again.';
+        } else if(err && err.isTimeout){
+          connectStatus.textContent = 'The bridge didn\'t respond within 12 seconds. Try opening https://' + ip + '/api/nonexistentuser directly in a new Safari tab \u2014 if that also hangs, this iPad\'s Safari can\'t complete a secure connection to the bridge (unrelated to this page).';
+        } else {
+          connectStatus.textContent = 'Could not reach the bridge at ' + ip + '. Check the address and that this iPad is on the same Wi-Fi network, and make sure you completed step 2.';
+        }
+      });
+    });
+    step3.appendChild(connectBtn);
+    step3.appendChild(connectStatus);
+    wrap.appendChild(step3);
+
+    // Already paired elsewhere? skip straight to it.
+    var altToggle = el('<button class="expand-btn" style="padding-top:0;">Already paired this bridge somewhere else? &#9660;</button>');
+    var altBox = el('<div class="step" style="display:none;"></div>');
+    altBox.appendChild(el('<h2>Use an existing pairing</h2>'));
+    altBox.appendChild(el('<p>If you already paired from another copy of this page, enter the same bridge address and API username here instead of pressing the link button again.</p>'));
+    var altIp = el('<input class="field" type="text" placeholder="Bridge address, e.g. 192.168.1.42" style="margin-bottom:10px;" />');
+    var altUser = el('<input class="field" type="text" placeholder="API username" />');
+    var altBtn = el('<button class="btn secondary" style="margin-top:10px;">Use this pairing</button>');
+    var altStatus = el('<div class="hint" style="margin-top:8px;"></div>');
+    altBtn.addEventListener('click', function(){
+      var ip2 = altIp.value.trim();
+      var user2 = altUser.value.trim();
+      if(!ip2 || !user2){ altStatus.textContent = 'Enter both the bridge address and the username.'; return; }
+      state.ip = ip2;
+      state.username = user2;
+      saveConfig({ ip: ip2, username: user2 });
+      state.view = 'dashboard';
+      loadAndRender();
+      startPolling();
+    });
+    altBox.appendChild(altIp);
+    altBox.appendChild(altUser);
+    altBox.appendChild(altBtn);
+    altBox.appendChild(altStatus);
+    altToggle.addEventListener('click', function(){
+      altBox.style.display = altBox.style.display === 'none' ? 'block' : 'none';
+    });
+    wrap.appendChild(altToggle);
+    wrap.appendChild(altBox);
+
+    return wrap;
+  }
+
+  function renderDashboard(){
+    var wrap = document.createDocumentFragment ? el('<div></div>') : el('<div></div>');
+
+    var top = el('<div class="topbar"></div>');
+    top.appendChild(el('<h1>Home</h1>'));
+    var right = el('<div class="row" style="gap:14px;"></div>');
+    var clock = el('<div class="clock"></div>');
+    clock.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    var gear = el('<button class="icon-btn" title="Settings">&#9881;</button>');
+    gear.addEventListener('click', openSettings);
+    right.appendChild(clock);
+    right.appendChild(gear);
+    top.appendChild(right);
+    wrap.appendChild(top);
+
+    if(state.lastError){
+      var banner = el('<div class="status-banner error"></div>');
+      banner.textContent = state.lastError;
+      var retry = el('<div style="margin-top:8px;"><button class="link">Retry now</button></div>');
+      retry.querySelector('button').addEventListener('click', loadAndRender);
+      banner.appendChild(retry);
+      wrap.appendChild(banner);
+    }
+
+    var rooms = roomsList();
+
+    if(rooms.length === 0){
+      var empty = el('<div class="empty"><h2>No rooms yet</h2><p>Create rooms or zones in the Hue app first, then come back and tap Retry.</p></div>');
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    // all-lights row (group 0)
+    var g0 = state.groups['0'];
+    if(g0){
+      var allOn = !!(g0.state && g0.state.any_on);
+      var allRow = el('<div class="all-row"></div>');
+      var allName = el('<p class="tile-name">All lights</p>');
+      var allSwitch = el('<button class="switch' + (allOn ? ' on' : '') + '" aria-label="Toggle all lights"></button>');
+      allSwitch.addEventListener('click', function(){
+        setGroupState('0', { on: !allOn });
+        setTimeout(loadAndRender, 500);
+      });
+      allRow.appendChild(allName);
+      allRow.appendChild(allSwitch);
+      wrap.appendChild(allRow);
+    }
+
+    var grid = el('<div class="grid"></div>');
+    rooms.forEach(function(r){ grid.appendChild(renderRoomTile(r.id, r.g)); });
+    wrap.appendChild(grid);
+
+    return wrap;
+  }
+
+  function renderRoomTile(id, g){
+    var items = lightsInGroup(g);
+    var anyOn = !!(g.state && g.state.any_on);
+    var bri = avgBri(items);
+    var color = anyOn ? representativeColor(items) : null;
+
+    var tile = el('<div class="tile' + (anyOn ? ' on' : '') + '"></div>');
+    var glow = el('<div class="glow"></div>');
+    if(color){
+      glow.style.background = 'radial-gradient(120% 140% at 20% 0%, ' + rgbCss(color, 0.35) + ', transparent 70%)';
+      tile.style.boxShadow = '0 0 30px ' + rgbCss(color, 0.12);
+    } else if(anyOn){
+      glow.style.background = 'radial-gradient(120% 140% at 20% 0%, rgba(255,184,107,0.28), transparent 70%)';
+    }
+    tile.appendChild(glow);
+
+    var head = el('<div class="tile-head"></div>');
+    var nameCol = el('<div></div>');
+    nameCol.appendChild(el('<p class="tile-name"></p>')).textContent = g.name;
+    var onCount = items.filter(function(it){ return it.l.state.on; }).length;
+    var sub = anyOn ? (onCount + ' of ' + items.length + ' on') : 'Off';
+    var subEl = el('<p class="tile-sub"></p>');
+    subEl.textContent = sub;
+    nameCol.appendChild(subEl);
+    head.appendChild(nameCol);
+
+    var sw = el('<button class="switch' + (anyOn ? ' on' : '') + '" aria-label="Toggle ' + g.name + '"></button>');
+    sw.addEventListener('click', function(){
+      setGroupState(id, { on: !anyOn });
+      setTimeout(loadAndRender, 500);
+    });
+    head.appendChild(sw);
+    tile.appendChild(head);
+
+    var sliderRow = el('<div class="slider-row"></div>');
+    var slider = el('<input type="range" min="1" max="254" />');
+    slider.value = bri;
+    if(!anyOn) slider.setAttribute('disabled','disabled');
+    slider.addEventListener('input', function(){
+      var v = slider.value;
+      clearTimeout(sliderTimers[id]);
+      sliderTimers[id] = setTimeout(function(){
+        setGroupState(id, { bri: parseInt(v,10), on: true });
+      }, 180);
+    });
+    sliderRow.appendChild(slider);
+    tile.appendChild(sliderRow);
+
+    var expanded = !!state.expanded[id];
+    var expandBtn = el('<button class="expand-btn">' + (expanded ? 'Hide lights &#9650;' : 'Show ' + items.length + ' light' + (items.length===1?'':'s') + ' &#9660;') + '</button>');
+    expandBtn.addEventListener('click', function(){
+      state.expanded[id] = !expanded;
+      render();
+    });
+    tile.appendChild(expandBtn);
+
+    if(expanded){
+      var list = el('<div class="lights-list"></div>');
+      items.forEach(function(it){
+        list.appendChild(renderLightRow(it.id, it.l));
+      });
+      tile.appendChild(list);
+    }
+
+    return tile;
+  }
+
+  function renderLightRow(id, l){
+    var row = el('<div class="light-row"></div>');
+    var on = !!l.state.on;
+    var reachable = l.state.reachable !== false;
+    var dot = el('<span class="dot"></span>');
+    if(on && reachable){
+      var c = colorForLightState(l.state);
+      if(c) dot.style.background = rgbCss(c, 1);
+    }
+    row.appendChild(dot);
+
+    var name = el('<span class="lname' + (reachable ? '' : ' unreachable') + '"></span>');
+    name.textContent = l.name + (reachable ? '' : ' (unreachable)');
+    row.appendChild(name);
+
+    var slider = el('<input type="range" min="1" max="254" />');
+    slider.value = (l.state.bri === undefined ? 200 : l.state.bri);
+    if(!on || !reachable) slider.setAttribute('disabled','disabled');
+    slider.addEventListener('input', function(){
+      var v = slider.value;
+      clearTimeout(sliderTimers['l'+id]);
+      sliderTimers['l'+id] = setTimeout(function(){
+        setLightState(id, { bri: parseInt(v,10), on: true });
+      }, 180);
+    });
+    row.appendChild(slider);
+
+    var msw = el('<button class="mini-switch' + (on ? ' on' : '') + '" aria-label="Toggle ' + l.name + '"></button>');
+    msw.addEventListener('click', function(){
+      setLightState(id, { on: !on });
+      setTimeout(loadAndRender, 500);
+    });
+    row.appendChild(msw);
+
+    return row;
+  }
+
+  function openSettings(){
+    var overlay = el('<div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;"></div>');
+    var card = el('<div class="step" style="max-width:360px;width:100%;background:var(--bg);"></div>');
+    card.appendChild(el('<h2>Settings</h2>'));
+    var info = el('<p></p>');
+    info.textContent = 'Bridge: ' + state.ip;
+    card.appendChild(info);
+    var userLabel = el('<p class="hint" style="margin-top:-6px;">API username (for Siri Shortcuts, etc.)</p>');
+    card.appendChild(userLabel);
+    var userField = el('<input class="field" type="text" readonly />');
+    userField.value = state.username;
+    userField.addEventListener('focus', function(){ userField.select(); });
+    card.appendChild(userField);
+    var groupsLink = el('<p class="hint" style="margin-top:8px;"><a href="' + apiBase() + '/' + state.username + '/groups" target="_blank">View room/group IDs</a></p>');
+    card.appendChild(groupsLink);
+    var refreshBtn = el('<button class="btn secondary" style="margin-right:8px;">Refresh now</button>');
+    refreshBtn.addEventListener('click', function(){ document.body.removeChild(overlay); loadAndRender(); });
+    var forgetBtn = el('<button class="btn danger">Forget this bridge</button>');
+    forgetBtn.addEventListener('click', function(){
+      clearConfig();
+      state.ip = null; state.username = null; state.lights = {}; state.groups = {};
+      state.view = 'setup-ip';
+      document.body.removeChild(overlay);
+      render();
+    });
+    var closeBtn = el('<button class="btn" style="margin-top:14px;">Close</button>');
+    closeBtn.addEventListener('click', function(){ document.body.removeChild(overlay); });
+    var row = el('<div class="row"></div>');
+    row.appendChild(refreshBtn);
+    row.appendChild(forgetBtn);
+    card.appendChild(row);
+    card.appendChild(closeBtn);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  }
+
+  // ---------- data loading ----------
+  function loadAndRender(){
+    if(!state.ip || !state.username){ return; }
+    state.loading = true;
+    fetchAll().then(function(data){
+      state.loading = false;
+      if(data && data.lights && data.groups){
+        state.lights = data.lights;
+        state.groups = data.groups;
+        state.lastError = null;
+        state.view = 'dashboard';
+      } else if(Array.isArray(data) && data[0] && data[0].error){
+        state.lastError = 'The bridge rejected this connection. It may need to be paired again.';
+      } else {
+        state.lastError = 'Unexpected response from the bridge.';
+      }
+      render();
+    }).catch(function(err){
+      state.loading = false;
+      if(err && err.isTimeout){
+        state.lastError = 'The bridge didn\'t respond within 12 seconds. Make sure this iPad is on the same Wi-Fi network as the bridge, then tap Retry.';
+      } else {
+        state.lastError = 'Can\'t reach the bridge at ' + state.ip + '. Make sure this iPad is on the same Wi-Fi network, then tap Retry.';
+      }
+      render();
+    });
+  }
+
+  function startPolling(){
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(function(){
+      if(document.visibilityState === 'visible'){ loadAndRender(); }
+    }, 8000);
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible'){ loadAndRender(); }
+  });
+
+  // ---------- boot ----------
+  function boot(){
+    var cfg = loadConfig();
+    if(cfg && cfg.ip && cfg.username){
+      state.ip = cfg.ip;
+      state.username = cfg.username;
+      state.view = 'dashboard';
+      render();
+      loadAndRender();
+      startPolling();
+    } else {
+      state.view = 'setup-ip';
+      render();
+    }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
