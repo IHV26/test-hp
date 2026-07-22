@@ -261,7 +261,7 @@
   }
 
   // ---------- bridge API ----------
-  function apiBase(){ return 'http://' + state.ip + '/api'; }
+  function apiBase(){ return 'https://' + state.ip + '/api'; }
 
   function withTimeout(promise, ms){
     return new Promise(function(resolve, reject){
@@ -479,8 +479,18 @@
     step1.appendChild(findRow);
     wrap.appendChild(step1);
 
-    // Step 2: link button
-    var step3 = el('<div class="step"><h2>2. Press the link button</h2><p>Press the round button on top of your Hue Bridge, then tap Connect within about 30 seconds.</p></div>');
+    // Step 2: trust certificate
+    var step2 = el('<div class="step"><h2>2. Trust the bridge, once</h2><p>Your bridge uses a self-signed security certificate. Safari will warn you the first time &mdash; that\'s expected for a device on your own network. Tap the link below, then choose <em>Show Details &rarr; visit this website</em>, then come back here. (If this exception ever quietly expires \u2014 e.g. after a restart \u2014 just redo this step.)</p></div>');
+    var trustLink = el('<a class="btn secondary" target="_blank" rel="noopener">Open bridge address</a>');
+    trustLink.addEventListener('click', function(ev){
+      if(!ipField.value){ ev.preventDefault(); alert('Enter the bridge address in step 1 first.'); return; }
+      trustLink.setAttribute('href', 'https://' + ipField.value.trim() + '/');
+    });
+    step2.appendChild(trustLink);
+    wrap.appendChild(step2);
+
+    // Step 3: link button
+    var step3 = el('<div class="step"><h2>3. Press the link button</h2><p>Press the round button on top of your Hue Bridge, then tap Connect within about 30 seconds.</p></div>');
     var connectBtn = el('<button class="btn">Connect</button>');
     var connectStatus = el('<div class="hint" style="margin-top:10px;"></div>');
     connectBtn.addEventListener('click', function(){
@@ -499,9 +509,9 @@
         if(err && err.type === 101){
           connectStatus.textContent = 'Press the link button on the bridge, then tap Connect again.';
         } else if(err && err.isTimeout){
-          connectStatus.textContent = 'The bridge didn\'t respond within 12 seconds. Try opening http://' + ip + '/api/nonexistentuser directly in a new Safari tab \u2014 if that also hangs, this iPad can\'t reach the bridge at all right now.';
+          connectStatus.textContent = 'The bridge didn\'t respond within 12 seconds. Make sure you completed step 2 (trusting the certificate) in a new tab first.';
         } else {
-          connectStatus.textContent = 'Could not reach the bridge at ' + ip + '. Check the address and that this iPad is on the same Wi-Fi network.';
+          connectStatus.textContent = 'Could not reach the bridge at ' + ip + '. Check the address, that this iPad is on the same Wi-Fi network, and that you completed step 2.';
         }
       });
     });
@@ -705,10 +715,24 @@
     var overlay = el('<div style="position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;"></div>');
     var card = el('<div class="step" style="max-width:360px;width:100%;background:var(--bg);"></div>');
     card.appendChild(el('<h2>Settings</h2>'));
-    var info = el('<p></p>');
-    info.textContent = 'Bridge: ' + state.ip;
-    card.appendChild(info);
-    var userLabel = el('<p class="hint" style="margin-top:-6px;">API username (for Siri Shortcuts, etc.)</p>');
+    var ipLabel = el('<p class="hint" style="margin-top:0;">Bridge address (edit if your router gave it a new one)</p>');
+    card.appendChild(ipLabel);
+    var ipField = el('<input class="field" type="text" style="margin-bottom:10px;" />');
+    ipField.value = state.ip;
+    card.appendChild(ipField);
+    var saveIpBtn = el('<button class="btn secondary" style="margin-bottom:10px;">Save address</button>');
+    var saveIpStatus = el('<span class="hint" style="margin-left:8px;"></span>');
+    saveIpBtn.addEventListener('click', function(){
+      var newIp = ipField.value.trim();
+      if(!newIp){ return; }
+      state.ip = newIp;
+      saveConfig({ ip: newIp, username: state.username });
+      saveIpStatus.textContent = 'Saved.';
+      groupsLink.setAttribute('href', apiBase() + '/' + state.username + '/groups');
+    });
+    card.appendChild(saveIpBtn);
+    card.appendChild(saveIpStatus);
+    var userLabel = el('<p class="hint" style="margin-top:6px;">API username (for Siri Shortcuts, etc.)</p>');
     card.appendChild(userLabel);
     var userField = el('<input class="field" type="text" readonly />');
     userField.value = state.username;
@@ -716,6 +740,8 @@
     card.appendChild(userField);
     var groupsLink = el('<p class="hint" style="margin-top:8px;"><a href="' + apiBase() + '/' + state.username + '/groups" target="_blank">View room/group IDs</a></p>');
     card.appendChild(groupsLink);
+    var trustAgainLink = el('<p class="hint" style="margin-top:-4px;"><a href="https://' + state.ip + '/" target="_blank">Re-trust bridge certificate</a> (try this first if you see "can\'t reach bridge")</p>');
+    card.appendChild(trustAgainLink);
     var refreshBtn = el('<button class="btn secondary" style="margin-right:8px;">Refresh now</button>');
     refreshBtn.addEventListener('click', function(){ document.body.removeChild(overlay); loadAndRender(); });
     var forgetBtn = el('<button class="btn danger">Forget this bridge</button>');
@@ -727,7 +753,7 @@
       render();
     });
     var closeBtn = el('<button class="btn" style="margin-top:14px;">Close</button>');
-    closeBtn.addEventListener('click', function(){ document.body.removeChild(overlay); });
+    closeBtn.addEventListener('click', function(){ document.body.removeChild(overlay); loadAndRender(); });
     var row = el('<div class="row"></div>');
     row.appendChild(refreshBtn);
     row.appendChild(forgetBtn);
