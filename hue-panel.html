@@ -261,7 +261,7 @@
   }
 
   // ---------- bridge API ----------
-  function apiBase(){ return 'https://' + state.ip + '/api'; }
+  function apiBase(){ return 'http://' + state.ip + '/api'; }
 
   function withTimeout(promise, ms){
     return new Promise(function(resolve, reject){
@@ -479,18 +479,8 @@
     step1.appendChild(findRow);
     wrap.appendChild(step1);
 
-    // Step 2: trust certificate
-    var step2 = el('<div class="step"><h2>2. Trust the bridge, once</h2><p>Your bridge uses a self-signed security certificate. Safari will warn you the first time &mdash; that\'s expected for a device on your own network. Tap the link below, then choose <em>Show Details &rarr; visit this website</em>, then come back here.</p></div>');
-    var trustLink = el('<a class="btn secondary" target="_blank" rel="noopener">Open bridge address</a>');
-    trustLink.addEventListener('click', function(ev){
-      if(!ipField.value){ ev.preventDefault(); alert('Enter the bridge address in step 1 first.'); return; }
-      trustLink.setAttribute('href', 'https://' + ipField.value.trim() + '/');
-    });
-    step2.appendChild(trustLink);
-    wrap.appendChild(step2);
-
-    // Step 3: link button
-    var step3 = el('<div class="step"><h2>3. Press the link button</h2><p>Press the round button on top of your Hue Bridge, then tap Connect within about 30 seconds.</p></div>');
+    // Step 2: link button
+    var step3 = el('<div class="step"><h2>2. Press the link button</h2><p>Press the round button on top of your Hue Bridge, then tap Connect within about 30 seconds.</p></div>');
     var connectBtn = el('<button class="btn">Connect</button>');
     var connectStatus = el('<div class="hint" style="margin-top:10px;"></div>');
     connectBtn.addEventListener('click', function(){
@@ -509,9 +499,9 @@
         if(err && err.type === 101){
           connectStatus.textContent = 'Press the link button on the bridge, then tap Connect again.';
         } else if(err && err.isTimeout){
-          connectStatus.textContent = 'The bridge didn\'t respond within 12 seconds. Try opening https://' + ip + '/api/nonexistentuser directly in a new Safari tab \u2014 if that also hangs, this iPad\'s Safari can\'t complete a secure connection to the bridge (unrelated to this page).';
+          connectStatus.textContent = 'The bridge didn\'t respond within 12 seconds. Try opening http://' + ip + '/api/nonexistentuser directly in a new Safari tab \u2014 if that also hangs, this iPad can\'t reach the bridge at all right now.';
         } else {
-          connectStatus.textContent = 'Could not reach the bridge at ' + ip + '. Check the address and that this iPad is on the same Wi-Fi network, and make sure you completed step 2.';
+          connectStatus.textContent = 'Could not reach the bridge at ' + ip + '. Check the address and that this iPad is on the same Wi-Fi network.';
         }
       });
     });
